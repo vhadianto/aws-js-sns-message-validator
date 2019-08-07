@@ -1,7 +1,7 @@
 "use strict";
 
 var url = require('url'),
-    https = require('https'),
+    request = require('request'),
     crypto = require('crypto'),
     defaultEncoding = 'utf8',
     defaultHostPattern = /^sns\.[a-zA-Z0-9\-]{3,}\.amazonaws\.com(\.cn)?$/,
@@ -103,22 +103,20 @@ var getCertificate = function (certUrl, cb) {
         return;
     }
 
-    https.get(certUrl, function (res) {
-        var chunks = [];
+    // Use request to respect proxy settings
+    request.get(certUrl, function (err, res, body) {
+        if (err) {
+          return cb(err);
+        }
+
 
         if(res.statusCode !== 200){
             return cb(new Error('Certificate could not be retrieved'));
         }
 
-        res
-            .on('data', function (data) {
-                chunks.push(data.toString());
-            })
-            .on('end', function () {
-                certCache[certUrl] = chunks.join('');
-                cb(null, certCache[certUrl]);
-            });
-    }).on('error', cb)
+        certCache[certUrl] = body
+        cb(null, body);
+    });
 };
 
 var validateSignature = function (message, cb, encoding) {
